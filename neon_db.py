@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import pickle
 from random import randint
 from subprocess import Popen
 import os
@@ -98,14 +99,19 @@ def CSV_as_matrix(csvList):
 
 	return List
 
-def tabulate(tableMatrix):
+def tabulate(tableMatrix, highlight_list=[]):
 	""" Prints table based on tableMatrix.
 		First row is considered to be field names.
 	"""
 
+	##  Some highlighting issues...
+
 	fieldNames = tableMatrix[0]
 	content = tableMatrix[1:]				# Remove field names from tableMatrix
 	lenList = [len(str(a)) + 5 for a in fieldNames]
+
+	if not highlight_list:
+		highlight_list = [0 for a in tableMatrix]
 
 	for row in tableMatrix:					# Read rows
 		for colNum in range(len(lenList)):	# Read no. of cols :- TRAVERSE FIELDS
@@ -131,7 +137,15 @@ def tabulate(tableMatrix):
 		print("| ", end="")
 
 		for colNum in range(len(lenList)):
-			print("{:{}} | ".format(str(row[colNum]), lenList[colNum]), end="")
+			if colorSupport and highlight_list[colNum] == 1:
+				print("\033[1;34m", end="")
+
+			print("{:{}}".format(str(row[colNum]), lenList[colNum]), end="")
+
+			if colorSupport:
+				print("\033[0m", end="")
+
+			print(" | ", end="")
 
 		print()
 
@@ -177,8 +191,7 @@ def findMatch(pattern, row, field_idx_list=None):
 
 	for a in range(len(row)):
 		if a in field_idx_list:
-			reObj = re.fullmatch(pattern, str(row[a]), flags=2)
-			# flags=2 => Ignore case
+			reObj = re.fullmatch(pattern, str(row[a]), re.IGNORECASE)
 
 			if reObj:
 				result.append(1)
@@ -191,8 +204,6 @@ def findMatch(pattern, row, field_idx_list=None):
 	return result
 
 # ------ MAIN ------
-
-import pickle
 
 db_filename = "new_table.neon"
 
@@ -581,7 +592,7 @@ while True:
 				new_table.append(row)
 
 		if new_table:
-			tabulate([fieldNames] + new_table)
+			tabulate([fieldNames] + new_table, result)
 		else:
 			print("\n*** No match found ***")
 
