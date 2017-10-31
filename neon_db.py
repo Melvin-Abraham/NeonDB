@@ -6,6 +6,8 @@ from subprocess import Popen
 import os
 import re
 
+## Check for color support in command line
+
 try:
 	from colorama import init
 	init()
@@ -16,6 +18,8 @@ except:
 		colorSupport = False
 	else:
 		colorSupport = True
+
+## Definitions
 
 class dataClass(object):
 	def __init__(self):
@@ -203,7 +207,7 @@ def findMatch(pattern, row, field_idx_list=None):
 
 	return result
 
-# ------ MAIN ------
+## Initialize neon file
 
 db_filename = "new_table.neon"
 
@@ -216,7 +220,7 @@ except:
 
 f.close()
 
-# ------ Reading File ------
+# ------ MAIN ------
 
 while True:
 	print("Make a selection: ")
