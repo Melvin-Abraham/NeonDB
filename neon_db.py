@@ -19,7 +19,7 @@ except:
 	else:
 		colorSupport = True
 
-## Definitions
+# -------- Definitions --------
 
 class dataClass(object):
 	def __init__(self):
@@ -39,6 +39,9 @@ class dataClass(object):
 		return inp
 
 def trans(string):
+
+	""" Transforms string to number."""
+
 	for a in string:
 		if not (a.isdigit() or a == "."):
 			# If not a number
@@ -47,6 +50,11 @@ def trans(string):
 	return eval(string)
 
 def createTableStruct():
+
+	""" Assists with assigning field names to 
+		table.
+	"""
+
 	obj = dataClass()
 
 	while True:
@@ -68,12 +76,20 @@ def createTableStruct():
 	print("\nNOW YOU ARE ALL SET...\n")
 
 def getFieldNames():
+
+	""" Returns field names from table."""
+
 	f = open(db_filename, "rb")
 	fieldNames = pickle.load(f).data
 	f.close()
 	return fieldNames
 
 def tableAsMatrix():
+
+	""" Returns table (including field names)
+		as a matrix.
+	"""
+
 	L = []
 	f = open(db_filename, "rb")
 
@@ -91,6 +107,11 @@ def tableAsMatrix():
 	return L
 
 def CSV_as_matrix(csvList):
+
+	""" Reads list of lines from csv file [csvList]
+		& returns content as a matrix.
+	"""
+
 	List = []
 	maxCols = len(csvList[0].split(","))
 
@@ -104,6 +125,7 @@ def CSV_as_matrix(csvList):
 	return List
 
 def tabulate(tableMatrix, highlight_matrix=[]):
+
 	""" Prints table based on tableMatrix.
 		First row is considered to be field names.
 	"""
@@ -113,7 +135,7 @@ def tabulate(tableMatrix, highlight_matrix=[]):
 	lenList = [len(str(a)) + 5 for a in fieldNames]
 
 	if not highlight_matrix:
-		highlight_matrix = [0 for a in tableMatrix]
+		highlight_matrix = [[0 for a in range(len(fieldNames))] for b in tableMatrix]
 
 	for row in tableMatrix:					# Read rows
 		for colNum in range(len(lenList)):	# Read no. of cols :- TRAVERSE FIELDS
@@ -180,6 +202,7 @@ def delCols(List_1D, col_idx_list):
 	return final_list
 
 def findMatch(pattern, row, field_idx_list=None):
+
 	""" Returns a list containing 1 (match found) or 0 (no match found) 
 		or -1 (excluded from finding match) for that particular col in the row.
 	"""
@@ -218,7 +241,7 @@ except:
 
 f.close()
 
-# ------ MAIN ------
+# -------- MAIN --------
 
 while True:
 	print("Make a selection: ")
@@ -592,10 +615,8 @@ while True:
 			result = findMatch(pattern, row, field_idx_list)
 
 			if 1 in result:
-				highlight_matrix.append(result)
-
-			if 1 in result:
 				new_table.append(row)
+				highlight_matrix.append(result)
 
 		if new_table:
 			tabulate([fieldNames] + new_table, highlight_matrix)
@@ -845,7 +866,7 @@ while True:
 				print("\nSaved '{}'".format(htmlFilename))
 				
 				try:
-					Popen(r'explorer /select,' + htmlFilename)
+					Popen(r'explorer /select,' + htmlFilename)		# For windows only
 				except Exception as e:
 					print("[Failed opening Window: {}]".format(e))
 
@@ -894,7 +915,7 @@ while True:
 				print("\nSaved '{}'".format(csvFilename))
 
 				try:
-					Popen(r'explorer /select,' + csvFilename)
+					Popen(r'explorer /select,' + csvFilename)		# For windows only
 				except Exception as e:
 					print("[Failed opening Window: {}]".format(e))
 
