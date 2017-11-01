@@ -103,19 +103,17 @@ def CSV_as_matrix(csvList):
 
 	return List
 
-def tabulate(tableMatrix, highlight_list=[]):
+def tabulate(tableMatrix, highlight_matrix=[]):
 	""" Prints table based on tableMatrix.
 		First row is considered to be field names.
 	"""
-
-	##  Some highlighting issues...
 
 	fieldNames = tableMatrix[0]
 	content = tableMatrix[1:]				# Remove field names from tableMatrix
 	lenList = [len(str(a)) + 5 for a in fieldNames]
 
-	if not highlight_list:
-		highlight_list = [0 for a in tableMatrix]
+	if not highlight_matrix:
+		highlight_matrix = [0 for a in tableMatrix]
 
 	for row in tableMatrix:					# Read rows
 		for colNum in range(len(lenList)):	# Read no. of cols :- TRAVERSE FIELDS
@@ -137,14 +135,14 @@ def tabulate(tableMatrix, highlight_list=[]):
 
 	# PRINT CONTENT
 
-	for row in content:
+	for row in range(len(content)):
 		print("| ", end="")
 
 		for colNum in range(len(lenList)):
-			if colorSupport and highlight_list[colNum] == 1:
-				print("\033[1;34m", end="")
+			if colorSupport and highlight_matrix[row][colNum] == 1:
+				print("\033[1m", end="")
 
-			print("{:{}}".format(str(row[colNum]), lenList[colNum]), end="")
+			print("{:{}}".format(str(content[row][colNum]), lenList[colNum]), end="")
 
 			if colorSupport:
 				print("\033[0m", end="")
@@ -588,15 +586,19 @@ while True:
 		## Find
 
 		new_table = []
+		highlight_matrix = []
 
 		for row in table[1:]:
 			result = findMatch(pattern, row, field_idx_list)
 
 			if 1 in result:
+				highlight_matrix.append(result)
+
+			if 1 in result:
 				new_table.append(row)
 
 		if new_table:
-			tabulate([fieldNames] + new_table, result)
+			tabulate([fieldNames] + new_table, highlight_matrix)
 		else:
 			print("\n*** No match found ***")
 
