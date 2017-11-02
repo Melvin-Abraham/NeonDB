@@ -5,6 +5,7 @@ from random import randint
 from subprocess import Popen
 import os
 import re
+import time
 
 ## Check for color support in command line
 
@@ -38,12 +39,28 @@ class dataClass(object):
 
 		return inp
 
+def typeOf(dataStr):
+	""" Returns type of the data passed."""
+
+	## Checks for Number
+
+	for a in dataStr:
+		if not (a.isdigit() or a == "." or a == "-"):
+			# If not a number
+
+			return "str"
+
+	if dataStr.count(".") <= 1:
+		# Check if it's a valid float number
+
+		return "num"
+
 def trans(string):
 
 	""" Transforms string to number."""
 
 	for a in string:
-		if not (a.isdigit() or a == "."):
+		if not (a.isdigit() or a == "." or a == "-"):
 			# If not a number
 			return string
 
@@ -80,9 +97,15 @@ def getFieldNames():
 	""" Returns field names from table."""
 
 	f = open(db_filename, "rb")
-	fieldNames = pickle.load(f).data
-	f.close()
-	return fieldNames
+
+	try:
+		fieldNames = pickle.load(f).data
+		return fieldNames
+
+	except:
+		f.close()
+		return []
+
 
 def tableAsMatrix():
 
@@ -128,7 +151,21 @@ def tabulate(tableMatrix, highlight_matrix=[]):
 
 	""" Prints table based on tableMatrix.
 		First row is considered to be field names.
+
+		Returns No. of rows printed successfully.
 	"""
+
+	def stringLine(level, lineChar="─"):
+		X = "─" * (sum(lenList) + 3 * len(fieldNames) - 1)
+		s = ""
+
+		levelList = ["┬", "┼", "┴"]
+
+		for a in lenList:
+			s += "─" * (a + 2)
+			s += levelList[level]
+
+		return s[:-1]
 
 	fieldNames = tableMatrix[0]
 	content = tableMatrix[1:]				# Remove field names from tableMatrix
@@ -146,35 +183,41 @@ def tabulate(tableMatrix, highlight_matrix=[]):
 	# PRINT FIELDNAMES
 
 	print()
-	print("-" * (2 + sum(lenList) + 3 * len(fieldNames) - 1))			#########
+	print("┌" + stringLine(level=0) + "┐")			#########
 	print("| ", end="")
 
 	for a in range(len(lenList)):
 		print("{:{}} | ".format(fieldNames[a], lenList[a]), end="")
 	
 	print()
-	print("-" * (2 + sum(lenList) + 3 * len(fieldNames) - 1))
+	print("├" + stringLine(level=1) + "┤")			#########
 
 	# PRINT CONTENT
 
-	for row in range(len(content)):
-		print("| ", end="")
+	try:
+		for row in range(len(content)):
+			print("| ", end="")
 
-		for colNum in range(len(lenList)):
-			if colorSupport and highlight_matrix[row][colNum] == 1:
-				print("\033[1m", end="")
+			for colNum in range(len(lenList)):
+				if colorSupport and highlight_matrix[row][colNum] == 1:
+					print("\033[1m", end="")
 
-			print("{:{}}".format(str(content[row][colNum]), lenList[colNum]), end="")
+				print("{:{}}".format(str(content[row][colNum]), lenList[colNum]), end="")
 
-			if colorSupport:
-				print("\033[0m", end="")
+				if colorSupport:
+					print("\033[0m", end="")
 
-			print(" | ", end="")
+				print(" | ", end="")
 
+			print()
+
+	except KeyboardInterrupt:
 		print()
 
-	print("-" * (2 + sum(lenList) + 3 * len(fieldNames) - 1))
+	print("└" + stringLine(level=2) + "┘")			#########
 	print()
+
+	return (row + 1) if row else None
 
 def invertListContent(bigList, smallList):
 	return [x for x in bigList if x not in smallList]
@@ -256,7 +299,8 @@ while True:
 	print("8) Find in table")
 	print("9) Import CSV")
 	print("10) Export As...")
-	print("11) EXIT")
+	print("11) Switch DB")
+	print("12) EXIT")
 	print()
 
 	sel = int(input("Selection: "))
@@ -458,9 +502,25 @@ while True:
 			print()
 
 	elif sel == 5:
+		print("=" * 40)
 
 		tableMatrix = tableAsMatrix()
-		tabulate(tableMatrix)
+
+		try:
+			execTime = time.time()
+			rowsPrinted = tabulate(tableMatrix)
+			execTime = time.time() - execTime
+
+			print("Printed {} rows in {} secs.".format(rowsPrinted, execTime))
+
+		except:
+			print("\nINVALID FILE:")
+			print("Table cannot be visualized.")
+
+		print()
+
+		print("=" * 40)
+		print()
 
 	elif sel == 6:
 		print("=" * 40)
@@ -495,87 +555,97 @@ while True:
 		print(">>> PLOT A GRAPH:")
 		print()
 
-		fieldNames = getFieldNames()
-		tableList = tableAsMatrix()
-		numberIndex = [a for a in range(len(tableList[0]))]	# Index of all fields
+		try:
+			fieldNames = getFieldNames()
+			tableList = tableAsMatrix()
+			numberIndex = [a for a in range(len(tableList[0]))]	# Index of all fields
 
-		# Generate field index of those field that can be considered as values(numeric).
+			# Generate field index of those field that can be considered as values(numeric).
 
-		nonValueListIndex = []
+			nonValueListIndex = []
 
-		for a in tableList[1:]:
-			for b in range(len(a)):
-				if type(a[b]) not in [int, float]:
-					if b not in nonValueListIndex:
-						nonValueListIndex.append(b)
+			for a in tableList[1:]:
+				for b in range(len(a)):
+					if typeOf(str(a[b])) != "num":
+						if b not in nonValueListIndex:
+							nonValueListIndex.append(b)
 
-		# Index of those fields that can be considered as values.
-		valueListIndex = invertListContent(numberIndex, nonValueListIndex)
+			# Index of those fields that can be considered as values.
+			valueListIndex = invertListContent(numberIndex, nonValueListIndex)
 
-		for a in range(len(valueListIndex)):
-			print("{}) {}".format(a + 1, tableList[0][valueListIndex[a]]))
+			if not valueListIndex:
+				errMsg = "No numeric value found in the table"
 
-		print()
+				print("*** {} ***".format(errMsg))
+				raise ValueError("{}".format(errMsg))
 
-		# Index of the field opted as value by USER.
-		valIndex = int(input("Select value field: ")) - 1
-		valIndex = valueListIndex[valIndex]
+			for a in range(len(valueListIndex)):
+				print("{}) {}".format(a + 1, tableList[0][valueListIndex[a]]))
 
-		print("\nYou selected '{}'".format(tableList[0][valIndex]))
+			print()
 
-		# Index of those fields that can be considered as labels.
-		labelListIndex = nonValueListIndex
+			# Index of the field opted as value by USER.
+			valIndex = int(input("Select value field: ")) - 1
+			valIndex = valueListIndex[valIndex]
 
-		print("-" * 40)
-		print()
+			print("\nYou selected '{}'".format(tableList[0][valIndex]))
 
-		for a in range(len(labelListIndex)):
-			print("{}) {}".format(a + 1, tableList[0][labelListIndex[a]]))
+			# Index of those fields that can be considered as labels.
+			labelListIndex = nonValueListIndex
 
-		print()
+			print("-" * 40)
+			print()
 
-		# Index of the field opted as label by USER.
-		labelIndex = int(input("Select label field: ")) - 1
-		labelIndex = labelListIndex[labelIndex]
+			for a in range(len(labelListIndex)):
+				print("{}) {}".format(a + 1, tableList[0][labelListIndex[a]]))
 
-		print("\nYou selected '{}'".format(tableList[0][labelIndex]))
+			print()
 
-		print("-" * 40)
-		print()
+			# Index of the field opted as label by USER.
+			labelIndex = int(input("Select label field: ")) - 1
+			labelIndex = labelListIndex[labelIndex]
 
-		# Traverse the table: Find max len of label Name
-		#                   : Figure out no. of chars to be printed
+			print("\nYou selected '{}'".format(tableList[0][labelIndex]))
 
-		maxLabelLen = 0
-		valueList = [row[valIndex] for row in tableList[1:]]
-		labelList = [row[labelIndex] for row in tableList[1:]]
-		maxVal = max(valueList)
-		maxChar = 50
-		charList = {}
+			print("-" * 40)
+			print()
 
-		for row in tableList[1:]:
-			if len(row[labelIndex]) > maxLabelLen:
+			# Traverse the table: Find max len of label Name
+			#                   : Figure out no. of chars to be printed
 
-				# Keep track of max len of Label Name.
-				maxLabelLen = len(row[labelIndex])
+			maxLabelLen = 0
+			valueList = [trans(row[valIndex]) for row in tableList[1:]]
+			labelList = [trans(row[labelIndex]) for row in tableList[1:]]
+			maxVal = max(valueList)
+			maxChar = 50
+			charList = {}
 
-		for a in range(len(valueList)):
-			# Generate dict of no. of chars to be printed against each label.
-			charList[labelList[a]] = int(round(valueList[a] * maxChar) / maxVal)
+			for row in tableList[1:]:
+				if len(row[labelIndex]) > maxLabelLen:
 
-		# Graph Printing
+					# Keep track of max len of Label Name.
+					maxLabelLen = len(row[labelIndex])
 
-		print("{0:{1}}   {2}".format(tableList[0][labelIndex].upper(), maxLabelLen, tableList[0][valIndex].upper()))
-		print()
+			for a in range(len(valueList)):
+				# Generate dict of no. of chars to be printed against each label.
+				charList[labelList[a]] = int(round(valueList[a] * maxChar) / maxVal)
 
-		for a in range(1, len(tableList)):
-			labelName = tableList[a][labelIndex]
+			# Graph Printing
 
-			if colorSupport:
-				print("{0:{1}} | \033[{4}m{2}\033[0m {3}".format(str(labelName), maxLabelLen, " " * charList[labelName], valueList[a - 1], randint(41, 46)))
+			print("{0:{1}}   {2}".format(tableList[0][labelIndex].upper(), maxLabelLen, tableList[0][valIndex].upper()))
+			print()
 
-			else:
-				print("{0:{1}} | {2} {3}".format(str(labelName), maxLabelLen, "*" * charList[labelName], valueList[a - 1]))
+			for a in range(1, len(tableList)):
+				labelName = tableList[a][labelIndex]
+
+				if colorSupport:
+					print("{0:{1}} | \033[{4}m{2}\033[0m {3}".format(str(labelName), maxLabelLen, " " * charList[labelName], valueList[a - 1], randint(41, 46)))
+
+				else:
+					print("{0:{1}} | {2} {3}".format(str(labelName), maxLabelLen, "*" * charList[labelName], valueList[a - 1]))
+
+		except ValueError:
+			pass
 
 		print()
 		print("=" * 40)
@@ -619,7 +689,12 @@ while True:
 				highlight_matrix.append(result)
 
 		if new_table:
-			tabulate([fieldNames] + new_table, highlight_matrix)
+			execTime = time.time()
+			rowsPrinted = tabulate([fieldNames] + new_table, highlight_matrix)
+			
+			execTime = time.time() - execTime
+			print("Printed {} rows in {} secs.".format(rowsPrinted, execTime))
+
 		else:
 			print("\n*** No match found ***")
 
@@ -647,8 +722,8 @@ while True:
 		print("-" * 40)
 
 		if csvFileIndex in range(len(csvFiles)):
-			targetFile = csvFiles[csvFileIndex]
-			f = open(targetFile)
+			srcFile = csvFiles[csvFileIndex]
+			source_file = open(srcFile, encoding='utf-8', errors='ignore')
 
 			print("\nWhat do you want to do...")
 			print()
@@ -666,8 +741,8 @@ while True:
 				try:
 					# Checks whether the file already exists.
 
-					f1 = open(newFileName + ".neon")
-					f1.close()
+					destination_file = open(newFileName + ".neon")
+					destination_file.close()
 
 					# If file exists.
 
@@ -688,13 +763,13 @@ while True:
 					# Automatic file naming.
 
 					num = 1
-					targetFile = targetFile[:-len(".csv")]
+					srcFile = srcFile[:-len(".csv")]
 
 					while True:
 						try:
-							newFileName = targetFile + "_{}".format(num)
-							f1 = open(newFileName + ".neon")
-							f1.close()
+							newFileName = srcFile + "_{}".format(num)
+							destination_file = open(newFileName + ".neon")
+							destination_file.close()
 							num += 1
 
 						except:
@@ -703,15 +778,38 @@ while True:
 				newFileName += ".neon"
 				
 				if access:
-					f1 = open(newFileName, "wb")
-					csvMatrix = CSV_as_matrix(f.readlines())
+					csvMatrix = CSV_as_matrix(source_file.readlines())
+					fieldNames = csvMatrix[0]
+					
+					print("\nSelect Fields you need:\n")
+
+					for a in range(len(fieldNames)):
+						print("{}) {}".format(a + 1, fieldNames[a]))
+
+					print()
+
+					field_idx_list = input("Field Selection (multiple): ")
+		
+					if field_idx_list:
+						field_idx_list = field_idx_list.split()
+						field_idx_list = [int(x) - 1 for x in field_idx_list]
+
+					else:
+						field_idx_list = [x for x in range(len(fieldNames))]
+
+					remove_idx_list = invertListContent([x for x in range(len(fieldNames))], field_idx_list)
+					csvMatrix = delMatrixCols(csvMatrix, remove_idx_list)
+
+					## Main
+
+					destination_file = open(newFileName, "wb")
 					obj = dataClass()
 
 					for a in csvMatrix:
 						obj.data = a
-						pickle.dump(obj, f1)
+						pickle.dump(obj, destination_file)
 
-					f1.close()
+					destination_file.close()
 					
 					print("\nCreated file '{}'".format(newFileName))
 					print("Switching to '{}'".upper().format(newFileName))
@@ -725,16 +823,38 @@ while True:
 				inp = input("Are you really sure to overwrite the file? [y / n] ").lower()
 				
 				if inp == "y":
-					f1 = open(db_filename, "wb")
+					csvMatrix = CSV_as_matrix(source_file.readlines())
+					fieldNames = csvMatrix[0]
+					
+					print("\nSelect Fields you need:\n")
 
-					csvMatrix = CSV_as_matrix(f.readlines())
+					for a in range(len(fieldNames)):
+						print("{}) {}".format(a + 1, fieldNames[a]))
+
+					print()
+
+					field_idx_list = input("Field Selection (multiple): ")
+		
+					if field_idx_list:
+						field_idx_list = field_idx_list.split()
+						field_idx_list = [int(x) - 1 for x in field_idx_list]
+
+					else:
+						field_idx_list = [x for x in range(len(fieldNames))]
+
+					remove_idx_list = invertListContent([x for x in range(len(fieldNames))], field_idx_list)
+					csvMatrix = delMatrixCols(csvMatrix, remove_idx_list)
+
+					## Main
+
+					destination_file = open(db_filename, "wb")
 					obj = dataClass()
 
 					for a in csvMatrix:
 						obj.data = a
-						pickle.dump(obj, f1)
+						pickle.dump(obj, destination_file)
 
-					f1.close()
+					destination_file.close()
 
 					print("\nImport Successful.")
 
@@ -771,7 +891,7 @@ while True:
 
 			try:
 				f = open(htmlFilename, "r")
-				f.close()
+				source_file.close()
 
 				inp = input("The file '{}' already exists. Do you want to override the file [y / n] : ".format(htmlFilename))
 
@@ -923,6 +1043,30 @@ while True:
 		print()
 
 	elif sel == 11:
+		print("=" * 40)
+		print(">>> SWITCH DB:")
+		print()
+
+		neonFiles = [a for a in os.listdir() if a.endswith(".neon")]
+
+		for a in range(len(neonFiles)):
+			print("{}) {}".format(a + 1, neonFiles[a]))
+
+		inp = input("\nSelection: ")
+		inp = int(inp) if inp.isdigit() else inp
+
+		if inp in range(1, len(neonFiles) + 1):
+			db_filename = neonFiles[inp - 1]
+			print("\nSwitching to '{}'".upper().format(db_filename))
+
+		else:
+			print("\nOPERATION ABORTED")
+
+		print("=" * 40)
+		print()
+
+	elif sel == 12:
 		print("-" * 20 + "x" + "-" * 20)
 		print()
 		break
+		
