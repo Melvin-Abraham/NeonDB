@@ -6,6 +6,10 @@ from subprocess import Popen
 import os
 import re
 import time
+from sys import argv
+from platform import system
+import tkinter as tk
+from tkinter import messagebox
 
 ## Check for color support in command line
 
@@ -19,6 +23,9 @@ except:
 		colorSupport = False
 	else:
 		colorSupport = True
+
+version = "v1.1.0 - alpha"
+prog_dir = os.path.split(argv[0])[0]
 
 # -------- Definitions --------
 
@@ -58,6 +65,8 @@ def typeOf(dataStr):
 def trans(string):
 
 	""" Transforms string to number."""
+
+	string = str(string)
 
 	for a in string:
 		if not (a.isdigit() or a == "." or a == "-"):
@@ -217,7 +226,7 @@ def tabulate(tableMatrix, highlight_matrix=[]):
 	print("└" + stringLine(level=2) + "┘")			#########
 	print()
 
-	return (row + 1) if row else None
+	return (row + 1)
 
 def invertListContent(bigList, smallList):
 	return [x for x in bigList if x not in smallList]
@@ -271,9 +280,25 @@ def findMatch(pattern, row, field_idx_list=None):
 
 	return result
 
+def revealFile(path):
+	if system() == "Windows":
+		Popen(r'explorer /select,' + path)
+
+	elif system() == "Linux":
+		Popen(["xdg-open", path])
+
+	elif system() == "Darwin":
+		Popen(["open", path])
+
+	else:
+		raise Exception("Can't reveal file in explorer.")
+
 ## Initialize neon file
 
 db_filename = "new_table.neon"
+
+if len(argv) > 1:
+	db_filename = argv[1]
 
 try:
 	f = open(db_filename, "rb")
@@ -300,13 +325,17 @@ while True:
 	print("9) Import CSV")
 	print("10) Export As...")
 	print("11) Switch DB")
-	print("12) EXIT")
+	print("12) ABOUT")
+	print("13) EXIT")
 	print()
 
-	sel = int(input("Selection: "))
+	sel = input("Selection: ")
 	print()
 
-	if sel == 1:
+	if sel == '1':
+		print("=" * 40)
+		print()
+
 		f = open(db_filename, "rb")
 
 		try:
@@ -336,7 +365,10 @@ while True:
 
 		f.close()
 
-	elif sel == 2:
+	elif sel == '2':
+		print("=" * 40)
+		print()
+
 		f = open(db_filename, "rb")
 
 		try:
@@ -392,7 +424,10 @@ while True:
 			print("Table structure not defined!\nGET STARTED...\n")
 			createTableStruct()
 
-	elif sel == 3:
+	elif sel == '3':
+		print("=" * 40)
+		print()
+
 		f = open(db_filename, "rb")
 
 		try:
@@ -459,7 +494,7 @@ while True:
 			print("Table structure not defined!\nGET STARTED...\n")
 			createTableStruct()
 
-	elif sel == 4:
+	elif sel == '4':
 		try:
 			if input("Are you really sure to overwrite the file? [y / n] ").lower() == "y":
 				pass
@@ -501,7 +536,7 @@ while True:
 			print("Operation Aborted...\n".upper())
 			print()
 
-	elif sel == 5:
+	elif sel == '5':
 		print("=" * 40)
 
 		tableMatrix = tableAsMatrix()
@@ -517,12 +552,7 @@ while True:
 			print("\nINVALID FILE:")
 			print("Table cannot be visualized.")
 
-		print()
-
-		print("=" * 40)
-		print()
-
-	elif sel == 6:
+	elif sel == '6':
 		print("=" * 40)
 		print()
 
@@ -546,11 +576,7 @@ while True:
 
 			print()
 
-		print()
-		print("=" * 40)
-		print()
-
-	elif sel == 7:
+	elif sel == '7':
 		print("=" * 40)
 		print(">>> PLOT A GRAPH:")
 		print()
@@ -647,11 +673,7 @@ while True:
 		except ValueError:
 			pass
 
-		print()
-		print("=" * 40)
-		print()
-
-	elif sel == 8:
+	elif sel == '8':
 		print("=" * 40)
 		print(">>> FIND IN TABLE:")
 		print()
@@ -698,11 +720,7 @@ while True:
 		else:
 			print("\n*** No match found ***")
 
-		print()
-		print("=" * 40)
-		print()
-
-	elif sel == 9:
+	elif sel == '9':
 		print("=" * 40)
 		print(">>> IMPORT CSV:")
 		csvFiles = []
@@ -861,11 +879,7 @@ while True:
 				else:
 					print("\nOPERATION ABORTED.")
 
-		print()
-		print("=" * 40)
-		print()
-
-	elif sel == 10:
+	elif sel == '10':
 		print("=" * 40)
 		print(">>> EXPORT AS:")
 		print()
@@ -986,9 +1000,9 @@ while True:
 				print("\nSaved '{}'".format(htmlFilename))
 				
 				try:
-					Popen(r'explorer /select,' + htmlFilename)		# For windows only
+					revealFile(htmlFilename)
 				except Exception as e:
-					print("[Failed opening Window: {}]".format(e))
+					print("[{}]".format(e))
 
 		elif inp == 2:
 			print()
@@ -1035,38 +1049,131 @@ while True:
 				print("\nSaved '{}'".format(csvFilename))
 
 				try:
-					Popen(r'explorer /select,' + csvFilename)		# For windows only
+					revealFile(csvFilename)
 				except Exception as e:
-					print("[Failed opening Window: {}]".format(e))
+					print("[{}]".format(e))
 
-		print("=" * 40)
-		print()
-
-	elif sel == 11:
+	elif sel == '11':
 		print("=" * 40)
 		print(">>> SWITCH DB:")
 		print()
 
 		neonFiles = [a for a in os.listdir() if a.endswith(".neon")]
 
+		print("0) Create a new DB")
+		print()
+
 		for a in range(len(neonFiles)):
 			print("{}) {}".format(a + 1, neonFiles[a]))
 
-		inp = input("\nSelection: ")
-		inp = int(inp) if inp.isdigit() else inp
+		idx = input("\nSelection: ")
+		idx = int(idx) if idx.isdigit() else idx
 
-		if inp in range(1, len(neonFiles) + 1):
-			db_filename = neonFiles[inp - 1]
+		if idx in range(1, len(neonFiles) + 1):
+			db_filename = neonFiles[idx - 1]
 			print("\nSwitching to '{}'".upper().format(db_filename))
+
+		elif idx == 0:
+			print("-" * 40)
+			print()
+			print("┌───┐")
+			print("| + | CREATE NEW DB")
+			print("└───┘")
+			print()
+
+			newFileName = input("Enter filename:\n") + ".neon"
+
+			try:
+				open(newFileName).close()
+				inp = input("\nThe file {} already exists. Do you want to overwrite it? [y / n]: ".format(newFileName))
+
+				if inp.lower() == "y":
+					access = True
+				else:
+					access = False
+			except:
+				access = True
+
+
+			if access:
+				f = open(newFileName, "wb")
+				print("\nSwitching to {}".format(newFileName))
+				db_filename = newFileName
+
+				print("-" * 40)
+				inp = input("\nCreate table Structure now [y / n]: ")
+				
+				if inp.lower() == "y":
+					print()
+					createTableStruct()
 
 		else:
 			print("\nOPERATION ABORTED")
 
-		print("=" * 40)
-		print()
+	elif sel == '12':
+		root = tk.Tk()
+		root.title("About")
 
-	elif sel == 12:
-		print("-" * 20 + "x" + "-" * 20)
-		print()
-		break
+		photo = tk.PhotoImage(file="{}\\img\\NeonDB_banner.png".format(prog_dir))
+		data = tk.Label(image=photo)
+		data.pack()
+
+		data = tk.Label(text="Version: {}".format(version), font=("Open Sans italic", 12))
+		data.pack()
+
+		data = tk.Label(text="Developer: Melvin. L. Abraham", font=("Open Sans italic", 12))
+		data.pack()
+
+		data = tk.Label(text="\nNeonDB is a lightweight python based Database (as of now...)", font=("Open Sans", 12))
+		data.pack()
+
+		data = tk.Label(text="NeonDB is an open-source project", font=("Open Sans", 12))
+		data.pack()
+
+		data = tk.Label(text="\nSource Code: ", font=("Open Sans italic", 12))
+		data.pack()
+
+		data = tk.Label(text="https://github.com/Melvin-Abraham/NeonDB", fg="blue", font=("Open Sans", 12))
+		data.pack()
+
+		data = tk.Label(text="\nWHAT'S NEW:", font=("Open Sans bold", 15))
+		data.pack()
+
+		whats_new = """
+1. Pass neon files as argument to open them in NeonDB
+2. Cleaner tables
+3. Added Switch Databases option
+4. Minor bug fixes.
+		"""
+
+		data = tk.Label(text=whats_new, font=("Open Sans", 12), justify="left")
+		data.pack()
+
+		b = tk.Button(text="OK", command=root.destroy, padx=40)
+		b.pack()
+
+		data = tk.Label(text="")
+		data.pack()
+		
+		root.update()
+		root.deiconify()
+
+	elif sel == '13':
+
+		## ISSUE: withdraw() -> 'About'
+
+		tk.Tk().withdraw()
+		answer = messagebox.askyesno("Exit","Are you really sure to Exit NeonDB?")
+
+		if answer:
+			print("-" * 20 + "x" + "-" * 20)
+			print()
+			break
+
+	else:
+		print("*** INVALID SELECTION ***")
+
+	print()
+	print("=" * 40)
+	print()
 		
